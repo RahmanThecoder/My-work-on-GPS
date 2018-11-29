@@ -1,0 +1,215 @@
+from pygame import *
+import serial
+import socket
+
+host = '192.168.1.110'
+port = 5588
+
+command = ' '
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+print('socket connected with server')
+s.connect((host, port))
+
+
+#ser = serial.Serial("COM13", 9600)
+#print("Arduino is connected")
+
+
+init()
+screen = display.set_mode((40,48))
+display.set_caption('the')
+
+endProgram = False
+while not endProgram:
+    for e in event.get():
+        if e.type == KEYDOWN:
+         command = ' '       
+         if (e.key == K_UP):
+          command = 'w'
+          print('Forward')
+          #ser.write(command.encode('utf-8'))
+         elif (e.key == K_DOWN):
+          command = 'b'
+          print('backward')
+          #ser.write(command.encode('utf-8'))
+         elif (e.key == K_LEFT):
+          command = 'l'
+          print('Left')
+          #ser.write(command.encode('utf-8'))
+         elif (e.key == K_RIGHT):
+          command = 'r'
+          print('Right')
+          #ser.write(command.encode('utf-8'))
+         elif (e.key == K_q):
+          command = 'q'
+          print('Base motor left')
+          #ser.write(command.encode('utf-8'))
+         elif (e.key == K_a):
+          command = 'x'
+          print('base motor right')
+          #ser.write(command.encode('utf-8'))
+         elif (e.key == K_w):
+          command = 'e'
+          print('Actuator one up')
+          #ser.write(command.encode('utf-8'))
+         elif (e.key == K_s):
+          command = 'c'
+          print('Actuator one down')
+          #ser.write(command.encode('utf-8'))
+         elif (e.key == K_e):
+          command = 't'
+          print('Actuator two up')
+          #ser.write(command.encode('utf-8'))
+         elif (e.key == K_d):
+          command = 'y'
+          print('Actuator two down')
+          #ser.write(command.encode('utf-8'))
+         elif (e.key == K_r):
+          command = 'u'
+          print('Actuator three up')
+          #ser.write(command.encode('utf-8'))
+         elif (e.key == K_f):
+          command = 'i'
+          print('Actuato three down')
+          #ser.write(command.encode('utf-8'))
+         elif (e.key == K_t):
+          command = 'm'
+          print('Wrist left')
+          #ser.write(command.encode('utf-8'))
+         elif (e.key == K_g):
+          command = 'n'
+          print('Wrist right')
+          #ser.write(command.encode('utf-8'))
+         elif (e.key == K_y):
+          command = 'o'
+          print('Gripper open')
+          #ser.write(command.encode('utf-8'))
+         elif (e.key == K_h):
+          command = 'p'
+          print('Gripper Close')
+          #ser.write(command.encode('utf-8'))
+         elif (e.key == K_u):
+          command = ''
+          print('science task motor up')
+         elif (e.key == K_j)
+          command = ''
+          print('science task motor down')
+         elif (e.key == K_i)
+          command = ''
+          print('science task motor left')
+         elif (e.key == K_k)
+          command = ''
+          print('science task motor right')
+
+         s.send(command.encode('utf-8'))
+         print("             ")
+         print('Massage Has Been Sent To Rover :  ')
+         data = s.recv(1024).decode('utf-8')
+         print("             ")
+         print('Received From Rover: ' + data)
+           
+        elif e.type == KEYUP:
+         command = ' '       
+       
+         if (e.key == K_UP):
+          command = 'z'
+          print('Stop')
+          #ser.write(command.encode('utf-8'))
+         elif (e.key == K_DOWN):
+          command = 'z'
+          print('Stop')
+          #ser.write(command.encode('utf-8'))
+         elif (e.key == K_LEFT):
+          command = 'z'
+          print('Stop')
+          #ser.write(command.encode('utf-8'))
+         elif (e.key == K_RIGHT):
+          command = 'z'
+          print('Stop')
+          #ser.write(command.encode('utf-8'))
+         elif (e.key == K_q):
+          command = '0'
+          print('Stop')
+          #ser.write(command.encode('utf-8'))
+         elif (e.key == K_a):
+          command = '0'
+          print('Stop')
+          #ser.write(command.encode('utf-8'))
+         elif (e.key == K_w):
+          command = '0'
+          print('Stop')
+          #ser.write(command.encode('utf-8'))
+         elif (e.key == K_s):
+          command = '0'
+          print('Stop')
+          #ser.write(command.encode('utf-8'))
+         elif (e.key == K_e):
+          command = '0'
+          print('Stop')
+          #ser.write(command.encode('utf-8'))
+         elif (e.key == K_d):
+          command = '0'
+          print('Stop')
+          #ser.write(command.encode('utf-8'))
+         elif (e.key == K_r):
+          command = '0'
+          print('Stop')
+          #ser.write(command.encode('utf-8'))
+         elif (e.key == K_f):
+          command = '0'
+          print('Stop')
+          #ser.write(command.encode('utf-8'))
+         elif (e.key == K_t):
+          command = '0'
+          print('Stop')
+          #ser.write(command.encode('utf-8'))
+         elif (e.key == K_g):
+          command = '0'
+          print('Stop')
+          #ser.write(command.encode('utf-8'))
+         elif (e.key == K_y):
+          command = '0'
+          print('Stop')
+          #ser.write(command.encode('utf-8'))
+         elif (e.key == K_h):
+          command = '0'
+          print('Stop')
+          #ser.write(command.encode('utf-8'))
+
+
+         s.send(command.encode('utf-8'))
+         print("             ")
+         print('Massage Has Been Sent To Rover :  ')
+         data = s.recv(1024).decode('utf-8')
+         print("             ")
+         print('Received From Rover: ' + data)
+import socket
+
+host = '192.168.1.110'
+port = 5546
+
+def Conn():
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        print("Socket initialised")
+        
+        return s
+        
+def main():
+        
+        while True:
+            try:
+                s = Conn()
+                s.connect((host,port))
+                com = input("Command: ")
+                
+                s.send(com.encode('utf-8'))
+                print("Command {0} sent!", com)
+
+            except:
+                print("Error Sceince Box") 
+                
+            finally:
+                s.close()
+
+if __name__ == '__main__':
+        main()

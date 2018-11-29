@@ -1,0 +1,36 @@
+int numGrades;
+int j;
+float grades[15];
+float bucket;
+float av;
+void setup() {
+  // put your setup code here, to run once:
+Serial.begin(9600);
+}
+
+void loop() {
+Serial.println("How Many Grades? ");
+while (Serial.available()==0){
+}
+numGrades=Serial.parseInt();
+for (j=1; j<=numGrades; j=j+1) {
+  Serial.println("Please Input a Grade");
+  while (Serial.available()==0){
+}
+grades[j]=Serial.parseFloat();
+}
+for (j=1; j<=numGrades; j=j+1){
+  bucket=bucket+grades[j];
+
+}
+av=bucket/numGrades;
+bucket=0;
+Serial.println("Your Grades are: ");
+for (j=1; j<=numGrades; j=j+1){
+  Serial.println(grades[j]);
+}
+Serial.println("");
+Serial.print("Your Average is: ");
+Serial.println(av);
+Serial.println("");
+}

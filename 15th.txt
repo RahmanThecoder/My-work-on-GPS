@@ -1,0 +1,16 @@
+//madeby_md_mustafizur_rahman
+#include <SoftwareSerial.h>
+const int RX=2;
+const int TX=3;
+
+SoftwareSerial gps (RX,TX);
+
+void setup(){
+gps.begin(9600);
+Serial.begin(9600);
+}
+
+void loop (){
+if(gps.available())
+Serial.print{(char) gps.read()};
+}

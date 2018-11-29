@@ -1,0 +1,103 @@
+#include <TinkerKit.h>
+#include <Servo.h>
+
+//sets up motors
+Servo motorFL;                    
+Servo motorFR;
+Servo motorBL;
+Servo motorBR;
+Servo mount;
+const int servoPin = 9;
+const int pingPin = 7;
+float inches;
+float duration;
+boolean findObject;
+
+
+void detectObject(){
+  //detects object
+  pinMode(pingPin, OUTPUT);          // Set pin to OUTPUT
+  digitalWrite(pingPin, LOW);        // Ensure pin is low
+  delayMicroseconds(2);
+  digitalWrite(pingPin, HIGH);       // Start ranging
+  delayMicroseconds(5);              //   with 5 microsecond burst
+  digitalWrite(pingPin, LOW);        // End ranging
+  pinMode(pingPin, INPUT);           // Set pin to INPUT
+  duration = pulseIn(pingPin, HIGH); // Read echo pulse
+
+
+  inches = duration / 74 / 2;      	 // Convert to inches
+  									
+  Serial.println(inches);            // Display result
+  delay(200);		                 // Short delay
+
+  if (inches >= 5)
+    findObject = false;
+  if (inches < 5)
+    findObject = true;
+}
+
+
+void setup(){
+  //attach the motors for wheels
+  motorFL.attach(O0);
+  motorFR.attach(O1);
+  motorBL.attach(O2);
+  motorBR.attach(O3);
+  //attach mount motor
+  mount.attach(servoPin);
+
+}
+
+void loop(){
+//makes sure sensor is facing forward 
+motor.write(0);
+delay(1000);
+
+//look for obstacles 
+detectObject();
+
+//if none are found, move forward while still looking 
+while(findObject == false){
+    motorFL.write(180);
+    motorBL.write(180);
+    motorFR.write(180);
+    motorBR.write(180);
+    detectObject();
+}
+  
+  //if found
+else if(findObject){
+	
+  //stop all wheels
+  motorFL.write(90);
+  motorBL.write(90);
+  motorBR.write(90);
+  motorFR.write(90);
+
+  //giving it time to turn (CHECK DELAYS)
+  mount.write(90); 
+  motorFR.write(180);
+  motorBR.write(180);
+  motorFL.write(0);
+  motorBL.write(0);
+  delay(3000);     
+  
+  while(findObject){
+    motorFL.write(180);
+    motorBL.write(180);
+    motorFR.write(180);
+    motorBR.write(180);
+    detectObject();
+    
+    if(findObject == false){
+     motorFR.write(0);
+     motorBR.write(0);
+     motorFL.write(180);
+     motorBL.write(180);
+     delay(2000);
+    }
+    
+  }
+}
+}

@@ -1,0 +1,267 @@
+/*
+   Arduino obstacle avoider and follower.
+   Goal in life...
+      Moves forward looking for obstacles to avoid or
+      keep-away from them (Force)
+   Written by Scott Beasley - 2015
+   Free to use or modify. Enjoy.
+*/
+/*
+   Uses the L9110S library. It works with the L9110S h-bridge. See Step 1 for the library   code.
+*/
+#include <L9110Driver.h>
+#include <Servo.h>
+// Defines for the distance reading function of the bot.
+#define turn() (left_dist >= right_dist) ? go_left () : go_right ()
+#define microsecondsToCentimeters(microseconds) (unsigned long)microseconds / 29.1 / 2.0
+#define MIN_ACTION_DIST 20 // 20 cm
+#define MIN_AWAY_DIST 20 // 20cm from bot
+// Change these defines if you use different pins
+#define ECHO_PIN 8 // Digital pin 2
+#define TRIGGER_PIN 3 // Digital pin 3
+#define SERVO_LR 4 // Pin for left/right scan servo
+#define pinAIN1 5 // define I1 interface
+#define pinAIN2 6 // define I2 interface
+#define pinBIN1 9 // define I3 interface
+#define pinBIN2 11 // define I4 interface
+#define MODE_PIN 2
+// Bot modes
+#define MODE_AVOID 0
+#define MODE_FORCE 1
+// Speed defines
+#define MAXFORWARDSPEED 225 // Max speed we want moving forward
+#define MAXBACKWARDSPEED 225 // Max reverse speed
+#define TOPSPEED 255 // Used to help turn better on carpet and rougher surfaces.
+// Various time delays used for driving and servo
+#define TURNDELAY 475
+#define BACKUPDELAY 400
+#define SERVOMOVEDELAY 200
+#define SERVOSEARCHDELAY 85
+#define DEBOUNCE_TM 20 // 20ms
+/*
+   Globals area.
+*/
+// Create the motor, servo objects to interface with
+L9110_Motor motor_left (pinAIN1, pinAIN2); // Create Left motor object
+L9110_Motor motor_right (pinBIN1, pinBIN2); // Create Right motor object
+Servo sensor_servo; // Create a servo object for our distance sensor
+// Global variables
+byte sweep_pos = 0; // Current position of the sensor servo
+byte pos_index = 90;
+byte mode = MODE_AVOID;
+byte mode_change = true;
+unsigned long last_pin_change;
+unsigned long left_dist, right_dist; // Distance measured left and right
+// function to handle the mode switch with debounce
+void checkMode ( )
+{
+  byte mode_val = digitalRead (MODE_PIN);
+  if ((long)(millis ( ) - last_pin_change) >= DEBOUNCE_TM) {
+     last_pin_change = millis ( );
+     // Changes the Mode the bot is in.
+     if (mode_val == LOW)
+        mode = MODE_AVOID;
+     if (mode_val == HIGH)
+        mode = MODE_FORCE;
+     mode_change == true;
+  }
+}
+void setup ( )
+{
+   // Uncomment if you need to debug.
+   //Serial.begin (9600); // Set Serial monitor at 9600 baud
+   //Serial.println ("My Follow/Avoid bot is starting up!");
+   // Make sure the motors are off at start
+   halt ( );
+   sensor_servo.attach (SERVO_LR); // Attach the servo SERVO_LR
+   sensor_servo.write (90); // Set the servo to the middle (neutral) pos
+   // Set modes for distance sensor pins
+   pinMode (ECHO_PIN, INPUT);  // Set echo pin as input
+   pinMode (TRIGGER_PIN, OUTPUT); // Set trigger pin as output
+   pinMode (MODE_PIN, INPUT); // Set mode pin as input
+   // Delay to give user time to make adjustments.  Remove after done.
+   //delay (30000);
+}
+void loop ( )
+{
+   checkMode ( ); // Read current switch value
+   // If mode has changed, re-center the sensor servo
+   if (mode_change == true) {
+      mode_change = false;
+      pos_index = 90;
+      sweep_pos = 0;
+      sensor_servo.write (pos_index);
+   }
+   if (mode == MODE_AVOID)
+      avoid ( ); // Try not to hit anything!
+   if (mode == MODE_FORCE)
+      force ( ); // keep-away from the hand!
+}
+void avoid ( )
+{
+   unsigned long dist_fwd;
+   // Rotate the distance sensor as we drive along
+   rotate_sensor ( );
+   // Give the servo time to get to position to get settled
+   delay (SERVOSEARCHDELAY);
+   // Get a reading from the current sensor direction
+   dist_fwd = ping ( );
+   //Serial.print ("Distance sensor reading: ");
+   //Serial.println (dist_fwd);
+   // Go forward while nothing is in the distance sensors read area
+   if (dist_fwd > MIN_ACTION_DIST || dist_fwd == 0)
+   {
+      go_forward ( );
+   }
+   else // There is something in the sensors read area
+   {
+      halt ( ); // Stop!
+      go_backward ( ); // Back up a bit
+      delay (BACKUPDELAY);
+      halt ( ); // Stop!
+      sensor_read ( ); // Read distance left and right
+      turn ( ); // Turn toward the clearest path
+      delay (TURNDELAY);
+      halt ( );
+      // Reset to mid position before moving again
+      pos_index = 90;
+      sweep_pos = 0;
+      sensor_servo.write (pos_index);
+   }
+}
+void force ( )
+{
+   unsigned long obj_dist;
+   obj_dist = ping ( );
+   //Serial.print ("Distance sensor reading: ");
+   //Serial.println (obj_dist);
+   // Go forward while nothing is in the distance sensors read area
+   if (obj_dist >= (MIN_AWAY_DIST + 20)) {
+      halt ( );
+      go_forward ( );
+   } else if (obj_dist <= (MIN_AWAY_DIST + 5)) {
+      halt ( );
+      go_backward ( );
+      // Reset to mid position before moving again
+      pos_index = 90;
+      sweep_pos = 0;
+      sensor_servo.write (pos_index);
+   }
+   delay (250);
+}
+// Read the sensor after we find something in the way. This helps find a new
+// path
+void sensor_read ( )
+{
+   //Serial.println ("Server at 40 deg...");
+   sensor_servo.write (40);
+   delay (SERVOMOVEDELAY);
+   right_dist = ping ( ); //Look to the right
+   //Serial.println ("Servo at 140 deg...");
+   sensor_servo.write (140);
+   delay (SERVOMOVEDELAY);
+   left_dist = ping ( ); // Look to the left
+   // Set the servo back to the center pos
+   //Serial.println ("Servo at 90 deg...");
+   sensor_servo.write (90);
+}
+// Rotate the sensor servo at 45deg increments
+void rotate_sensor ( )
+{
+   if (sweep_pos <= 0) {
+      pos_index = 45;
+   }
+   else if (sweep_pos >= 180) {
+      pos_index = -45;
+   }
+   //Serial.print ("pos_index = ");
+   //Serial.println (pos_index);
+   sweep_pos += pos_index;
+   //Serial.print ("sweep_pos = ");
+   //Serial.println (sweep_pos);
+   sensor_servo.write (sweep_pos);
+}
+// Read the HC-SR04 uSonic sensor
+unsigned long ping ( )
+{
+   // Trigger the uSonic sensor (HC-SR04) to send out a ping
+   digitalWrite (TRIGGER_PIN, LOW);
+   delayMicroseconds (5);
+   digitalWrite (TRIGGER_PIN, HIGH);
+   delayMicroseconds (10);
+   digitalWrite (TRIGGER_PIN, LOW);
+   // Measure how long the ping took and convert to cm's
+   return (microsecondsToCentimeters (pulseIn (ECHO_PIN, HIGH)));
+}
+void go_forward ( )
+{
+   //Serial.println ("Going forward...");
+   // Ramp the motors up to the speed.
+   // Help with spining out on some surfaces and ware and tare on the GM's
+   ramp_it_up (MAXFORWARDSPEED, FORWARD, BACKWARD);
+   // Set to all of the set speed just incase the ramp last vat was not all of
+   // it.
+   motor_left.setSpeed (MAXFORWARDSPEED);
+   motor_right.setSpeed (MAXFORWARDSPEED);
+   motor_left.run (FORWARD|RELEASE);
+   motor_right.run (BACKWARD|RELEASE);
+}
+void go_backward ( )
+{
+   //Serial.println ("Going backward...");
+   // Ramp the motors up to the speed.
+   // Help with spining out on some surfaces and ware and tare on the GM's
+   ramp_it_up (MAXBACKWARDSPEED, BACKWARD, FORWARD);
+   // Set to all of the set speed just incase the ramp last vat was not all of
+   // it.
+   motor_left.setSpeed (MAXBACKWARDSPEED);
+   motor_right.setSpeed (MAXBACKWARDSPEED);
+   motor_left.run (BACKWARD|RELEASE);
+   motor_right.run (FORWARD|RELEASE);
+}
+void go_left ( )
+{
+   //Serial.println ("Going left...");
+   // Ramp the motors up to the speed.
+   // Help with spining out on some surfaces and ware and tare on the GM's
+   ramp_it_up (TOPSPEED, BACKWARD, BACKWARD);
+   // Set to all of the set speed just incase the ramp last vat was not all of
+   // it.
+   motor_left.setSpeed (TOPSPEED);
+   motor_right.setSpeed (TOPSPEED);
+   motor_left.run (BACKWARD|RELEASE);
+   motor_right.run (BACKWARD|RELEASE);
+}
+void go_right ( )
+{
+   //Serial.println ("Going right...");
+   // Ramp the motors up to the speed.
+   // Help with spining out on some surfaces and ware and tare on the GM's
+   ramp_it_up (TOPSPEED, FORWARD, FORWARD);
+   // Set to all of the set speed just incase the ramp last vat was not all of
+   // it.
+   motor_left.setSpeed (TOPSPEED);
+   motor_right.setSpeed (TOPSPEED);
+   motor_left.run (FORWARD|RELEASE);
+   motor_right.run (FORWARD|RELEASE);
+}
+void halt ( )
+{
+   //Serial.println ("Halt!");
+   motor_left.setSpeed (0);
+   motor_right.setSpeed (0);
+   motor_left.run (BRAKE);
+   motor_right.run (BRAKE);
+}
+void ramp_it_up (uint8_t speed, uint8_t lf_dir, uint8_t rt_dir)
+{
+  uint8_t ramp_val = 0, step_val = 0;
+  step_val = abs (speed / 4);
+  for (uint8_t i = 0; i < 4; i++) {
+     ramp_val += step_val;
+     motor_left.setSpeed (ramp_val);
+     motor_right.setSpeed (ramp_val);
+     motor_left.run (lf_dir|RELEASE);
+     motor_right.run (rt_dir|RELEASE);
+     delay (25);
+  }
